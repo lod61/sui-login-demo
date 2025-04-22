@@ -1,103 +1,77 @@
-import Image from "next/image";
+'use client'; // 标记为客户端组件
+
+import { ConnectButton, useCurrentAccount, useSignPersonalMessage } from '@mysten/dapp-kit';
+import { useState } from 'react';
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const { mutate: signPersonalMessage } = useSignPersonalMessage();
+  const [message, setMessage] = useState('你好，Sui 钱包！'); // 预设登录消息
+  const [signature, setSignature] = useState('');
+  const [digest, setDigest] = useState(''); // 用于存储消息摘要
+  const currentAccount = useCurrentAccount();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  return (
+    <main className="flex min-h-screen flex-col items-center justify-center p-24 space-y-8">
+      <h1 className="text-4xl font-bold">Sui 钱包登录演示</h1>
+
+      {/* 连接/断开按钮 */}
+      <ConnectButton />
+
+      {/* 如果已连接钱包 */}
+      {currentAccount && (
+        <div className="flex flex-col items-center space-y-4 p-6 border rounded-lg shadow-md w-full max-w-md">
+          <p className="text-lg">已连接地址: <code className="text-sm p-1 rounded">{currentAccount.address}</code></p>
+
+          {/* 消息输入 */}
+          <div className="w-full">
+            <label className="block text-sm font-medium text-black">
+              签名消息:
+              <input
+                type="text"
+                value={message}
+                onChange={(ev) => setMessage(ev.target.value)}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+              />
+            </label>
+          </div>
+
+          {/* 签名按钮 */}
+          <button
+            onClick={() => {
+              signPersonalMessage(
+                {
+                  message: new TextEncoder().encode(message), // 将消息编码为 Uint8Array
+                },
+                {
+                  onSuccess: (result) => {
+                    console.log("签名成功:", result);
+                    setSignature(result.signature);
+                    setDigest(result.bytes); // .bytes 包含原始消息的 Base64 编码
+                  },
+                  onError: (error) => {
+                    console.error("签名失败:", error);
+                    setSignature("签名失败");
+                    setDigest("");
+                  }
+                },
+              );
+            }}
+            className="w-full inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            使用钱包签名消息
+          </button>
+
+          {/* 显示签名结果 */}
+          {signature && (
+            <div className="mt-4 p-4 border rounded w-full break-words">
+              <p><strong>签名 (Base64):</strong></p>
+              <code className="text-xs">{signature}</code>
+              <p className="mt-2"><strong>消息摘要 (Base64):</strong></p>
+              <code className="text-xs">{digest}</code>
+            </div>
+          )}
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      )}
+    </main>
   );
 }
